@@ -51,7 +51,8 @@ public class Passaro {
      * @param delta
      */
 
-    public  void atualiazar(float delta){
+    public  void atualiazar(float delta, boolean movimentar){
+        if (movimentar)
         atualializarVelocidade();
     }
 
