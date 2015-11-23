@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.Sprite;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
@@ -62,6 +63,11 @@ public class TelaJogo extends TelaBase {
 
     private Box2DDebugRenderer debug; // desenha o mundo na tela para ajudar no desenvolvimento
     private Boolean jogadorIniciado = false;
+    private SpriteBatch pincel;
+
+
+    private Sprite spriteChao1;
+    private Sprite spriteChao2;
 
     public TelaJogo(MainGame game) {
         super(game);
@@ -95,6 +101,7 @@ public class TelaJogo extends TelaBase {
             }
         });
         cameraInfo = new OrthographicCamera(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        pincel = new SpriteBatch();
         initTexturas();
         initChao();
         initPassaro();
@@ -164,7 +171,7 @@ public class TelaJogo extends TelaBase {
         lbPontuacao = new Label("0", estilo);
         palcoInformacoes.addActor(lbPontuacao);
 
-        //inicia botão
+        //inicia botï¿½o
         ImageButton.ImageButtonStyle estiloBotao = new ImageButton.ImageButtonStyle();
         estiloBotao.up = new SpriteDrawable(new Sprite(texturasPlay));
         btnPlay = new ImageButton(estiloBotao);
@@ -197,11 +204,21 @@ public class TelaJogo extends TelaBase {
 
 
     private void initChao() {
+
         chao = Util.criarCorpo(mundo, BodyDef.BodyType.StaticBody, 0, 0);
+
+        float inicioCamera = 0;
+        float altura = (Util.ALTURA_CHAO * Util.PIXEL_METRO) / Util.ESCALA;
+
+        spriteChao1 = new Sprite(texturasChao);
+        spriteChao1.setBounds(inicioCamera, 0, cameraInfo.viewportWidth, altura);
+
+        spriteChao2 = new Sprite(texturasChao);
+        spriteChao2.setBounds(inicioCamera + cameraInfo.viewportWidth, 0, cameraInfo.viewportWidth, altura);
     }
 
     private void initPassaro() {
-        passaro = new Passaro(mundo, camera, null);
+        passaro = new Passaro(mundo, camera, texturasPassaros);
     }
 
     @Override
@@ -214,7 +231,7 @@ public class TelaJogo extends TelaBase {
         atualizar(delta);
         renderizar(delta);
 
-        debug.render(mundo, camera.combined.cpy().scl(Util.PIXEL_METRO));
+        //debug.render(mundo, camera.combined.cpy().scl(Util.PIXEL_METRO));
     }
 
     private boolean pulando = false;
@@ -232,8 +249,31 @@ public class TelaJogo extends TelaBase {
      */
 
     private void renderizar(float delta) {
+
+        pincel.begin();
+
+        pincel.setProjectionMatrix(cameraInfo.combined);
+        pincel.draw(texturasFundo, 0, 0,
+                cameraInfo.viewportWidth, cameraInfo.viewportHeight);
+
+        pincel.setProjectionMatrix(cameraInfo.combined);
+        //desenha o passaro
+        passaro.renderizar(pincel);
+        //desenha os obstaculos
+        for (Obstaculo obs : obstaculos){
+            obs.renderizar(pincel);
+        }
+
+        //desenha o chao
+        spriteChao1.draw(pincel);
+        spriteChao2.draw(pincel);
+
+
+
+        pincel.end();
         palcoInformacoes.draw();
     }
+
 
     /**
      * Atualizacao e calculo dos corpos
@@ -274,7 +314,7 @@ public class TelaJogo extends TelaBase {
             if(obstaculos.size > 0){
                 ultimo = obstaculos.peek();
             }
-            Obstaculo o = new Obstaculo(mundo, camera, ultimo);
+            Obstaculo o = new Obstaculo(mundo, camera, ultimo, texturasObstaculosAcima, texturasObstaculosBaixo);
             obstaculos.add(o);
         }
         for(Obstaculo o : obstaculos){
@@ -303,7 +343,23 @@ public class TelaJogo extends TelaBase {
     private void atualizarChao() {
         Vector2 posicao = passaro.getCorpo().getPosition();
 
+
         chao.setTransform(posicao.x, 0, 0);
+
+        float inicioCamera = (camera.position.x - camera.viewportWidth / 2);
+
+        if (spriteChao1.getX() < inicioCamera){
+             spriteChao1.setBounds(spriteChao2.getX() + camera.viewportWidth, 0
+             , spriteChao1.getWidth(), spriteChao1.getHeight());
+
+        }
+        if (spriteChao2.getX() < inicioCamera){
+                spriteChao2.setBounds(spriteChao1.getX() + camera.viewportWidth, 0
+                        , spriteChao2.getWidth(), spriteChao2.getHeight());
+
+
+        }
+
     }
 
     @Override
@@ -355,6 +411,8 @@ public class TelaJogo extends TelaBase {
         texturasPlay.dispose();
 
         texturasGameover.dispose();
+
+        pincel.dispose();
 
     }
 }
